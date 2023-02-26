@@ -6,7 +6,6 @@
 #define DCCLIVE_TYPE_H
 
 #include <unistd.h>
-#include "../utils/atom.h"
 
 typedef unsigned int    log_size;
 typedef char *          log_buffer;
@@ -15,7 +14,6 @@ typedef int             log_file;
 typedef struct log_object {
     log_file _file;
     log_buffer _buf;
-    atom _mutex;
 } log_object;
 
 #define LOG_DEFAULT_BUFFER_SIZE     (4096 * 1024)

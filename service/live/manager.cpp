@@ -47,10 +47,10 @@ int live_list(RequestRouter &router, Admin *auth) {
         builder += URIEncodedPayload::UrlEncode(room.second->GetStart().c_str());
         builder += R"(","id":")";
         builder += room.second->GetID();
-        builder += R"(","push_key":"tk=)";
-        builder += URIEncodedPayload::UrlEncode(room.second->GetKey().c_str());
-        builder += "&id=room";
-        builder += URIEncodedPayload::UrlEncode(room.second->GetID().c_str());
+        builder += R"(","push_key":")";
+        builder += room.second->GetID();
+        builder += "?tk=";
+        builder += room.second->GetKey();
         builder += "\"}";
         if (i != roomMap.size() - 1)
             builder += ',';

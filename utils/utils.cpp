@@ -2,7 +2,6 @@
  * Copyright (c) shinsya.G 
  */
 #include "./string.h"
-#include "atom.h"
 #include "socket.h"
 
 const char hexAlpha[] = "0123456789abcdef";
@@ -70,26 +69,6 @@ size_t str_copy(char *dest, const char *src, size_t dest_max) {
     return len;
 }
 
-/** 以下是原子操作函数 */
-inline int fetch_add(int *ptr) {
-    int old = *ptr;
-    *ptr = old + 1;
-    return old;
-}
-
-void atom_init(atom *a) {
-    a->turn = 0;
-    a->ticket = 0;
-}
-
-void atom_lock(atom *a) {
-    int turn = fetch_add(&(a->ticket));
-    while (a->turn != turn);
-}
-
-void atom_unlock(atom *a) {
-    a->turn = a->turn + 1;
-}
 
 /** 以下是socket操作 */
 // 将指定文件描述符设置为非阻塞

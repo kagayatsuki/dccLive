@@ -31,5 +31,6 @@ extern void server_response(Response &response);
 extern void process_route(ProtocolHeader &request, Response &response, RouteProcess router);
 
 extern int route_console(RequestRouter &router);
+extern int route_service(RequestRouter &router);
 
 #endif //DCCLIVE_ROUTER_H

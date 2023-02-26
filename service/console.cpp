@@ -40,7 +40,6 @@ Pool *connPool;
 std::unordered_map<std::string, AdminSecret *> authorityTable;  // 身份验证表
 std::unordered_map<std::string, Admin *> sessionTable;          // session表
 
-atom_s sessionLock;
 time_t lastDecreaseSession = 0;
 char *client_buffer = nullptr;
 
@@ -57,7 +56,6 @@ int init_console(Pool *pool) {
     connPool = pool;
     client_buffer = new char[client_buffer_size];
     loadUserTable();
-    atom_init(&sessionLock);
     int fd = createNonBlockSocket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd == -1) {
         LOG2SVR("open console socket failed");
@@ -133,7 +131,6 @@ void decreaseSessionLife() {
     // 至少5秒才进行一次session维护
     if (currentTime - lastDecreaseSession < 5)
         return;
-    atom_lock(&sessionLock);
     for (auto it = sessionTable.begin(); it != sessionTable.end();) {
         if ((*it).second->StepLife((int16_t)((*it).second->lastStep - currentTime))) {
             (*it).second->lastStep = currentTime;
@@ -143,7 +140,6 @@ void decreaseSessionLife() {
         LOG2ADM("admin session expired (%s:%s)", (*it).first.c_str(), (*it).second->GetUid()->c_str());
         it = sessionTable.erase(it);
     }
-    atom_unlock(&sessionLock);
     lastDecreaseSession = currentTime;
 }
 
@@ -251,12 +247,8 @@ int dataInProcess(PoolEvent *e) {
     memset(client_buffer, 0, DEFAULT_CLIENT_BUFFER_SIZE);
     size_t len = read(e->fd, client_buffer, DEFAULT_CLIENT_BUFFER_SIZE);
     char tmp;
-    if (len == 0) {
+    if (len == 0 || (len == -1 && errno != EAGAIN))
         return 1;
-    }
-    if (len == -1 && errno != EAGAIN) {
-        return 1;
-    }
     bool too_large = false;
     while (read(e->fd, &tmp, 1) == 1) {too_large = true;}
     ProtocolHeader request(client_buffer, len);

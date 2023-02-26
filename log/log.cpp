@@ -73,8 +73,6 @@ log_size log_write(int type, char *fmt, ...) {
     log_buffer buf = log_objs[type]->_buf;
     log_size size = 0;
     // 多线程安全
-    atom *lock = &(log_objs[type]->_mutex);
-    atom_lock(lock);
     memset(buf, 0, LOG_DEFAULT_BUFFER_SIZE);
 
     // 多参环境
@@ -154,7 +152,6 @@ log_size log_write(int type, char *fmt, ...) {
         }
     }
     va_end(args);
-    atom_unlock(lock);
 
     buf[size++] = '\n';
     write(file, buf, size);
