@@ -156,7 +156,7 @@ Admin *tryCompareAuth(const char *name, const char *pwd) {
     } catch (std::out_of_range &ex) {
         return nullptr;
     }
-    LOG2ADM("Try to login user [%s](%x) by pwd(%s)", name, secret, pwd);
+    LOG2CLI("Try to login user [%s](%x) by pwd(%s)", name, secret, pwd);
     if (!secret)
         return nullptr;
     // 密码对比
@@ -218,7 +218,7 @@ void changePassword(std::string &name, const char *new_pass) {
 void rewriteUserTable() {
     int fd = open("./admin", O_RDWR | O_TRUNC);
     if (fd == -1) {
-        LOG2SYS("Cannot open authority table file. Rewrite user table failed");
+        LOG2ADM("Cannot open authority table file. Rewrite user table failed");
         return;
     }
     char buf[66];
@@ -229,7 +229,7 @@ void rewriteUserTable() {
         write(fd, buf, 66);
     }
     close(fd);
-    LOG2SYS("Authority table rewrite");
+    LOG2ADM("Authority table rewrite");
 }
 
 int connectionProcess(PoolEvent *e) {
@@ -248,6 +248,7 @@ int connectionProcess(PoolEvent *e) {
 }
 
 int dataInProcess(PoolEvent *e) {
+    memset(client_buffer, 0, DEFAULT_CLIENT_BUFFER_SIZE);
     size_t len = read(e->fd, client_buffer, DEFAULT_CLIENT_BUFFER_SIZE);
     char tmp;
     if (len == 0) {
@@ -260,26 +261,32 @@ int dataInProcess(PoolEvent *e) {
     while (read(e->fd, &tmp, 1) == 1) {too_large = true;}
     ProtocolHeader request(client_buffer, len);
     Response res;
+    std::string path_str = request.GetPath();
     // 未知请求
     if (request.GetMethod() == UNSUPPORTED) {
         res.SetMsg(&response_not_implement);
         res.Write(e->fd);
-        return 0;
+        LOG2CLI("Access %s %s", path_str.c_str(), "Unsupported request");
+        return 1;
     }
     // 请求过大
     if (too_large) {
         res.SetMsg(&response_tool_large);
         res.Write(e->fd);
+        LOG2CLI("Access %s %s", path_str.c_str(), "Request tool large");
         return 1;
     }
     // 路由
     process_route(request, res, route_console);
     size_t write_len = res.Write(e->fd);
     if (write_len <= 0) {
+        LOG2CLI("Access %s %s", path_str.c_str(), "Written failed");
         return 1;
     }
-    if (!res.KeepAlive(false, false))
+    if (!res.KeepAlive(false, false)) {
+        LOG2CLI("Access %s %s", path_str.c_str(), "Done");
         return 1;
-    LOG2ADM("Access %s", request.GetPath().c_str());
+    }
+    LOG2CLI("Access %s %s", path_str.c_str(), "Keep-alive");
     return 0;
 }

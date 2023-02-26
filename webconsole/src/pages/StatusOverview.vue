@@ -35,10 +35,13 @@
       <div class="room-option">
         <el-button type="primary" size="small" @click="showStreamingKey(item)">查看推流密钥</el-button>
         <el-button size="small" @click="exportAccessLog(item)">导出访问日志</el-button>
-        <el-button size="small" @click="exportWatchingData(item)">导出观看数据</el-button>
+        <el-button size="small" @click="exportWatchingData(item)" :disabled="true">导出观看数据</el-button>
         <el-button type="danger" size="small" @click="confirmDeleteRoom(item)">删除直播间</el-button>
         <el-button type="danger" size="small" :disabled="true">关闭直播间</el-button>
       </div>
+    </el-card>
+    <el-card v-show="room.length === 0">
+      当前没有任何直播间
     </el-card>
     <el-dialog v-model="dialog.new" title="新建直播间" width="400" center>
       <el-form label-width="auto">
@@ -52,7 +55,8 @@
           <el-input type="textarea" maxlength="200" v-model="form.new.note" />
         </el-form-item>
         <el-form-item label="开始时间">
-          <el-date-picker v-model="form.new.start_time" type="datetime" placeholder="选择日期时间" />
+          <el-date-picker v-model="form.new.start_time" format="YYYY/MM/DD HH:mm:ss" value-format="YYYY-MM-DD H:m:s"
+                          type="datetime" placeholder="选择开始日期时间" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -85,21 +89,21 @@ export default {
     return {
       api_status: {
         access_count: 0,
-        room_count: 2,
-        room_max: 10,
+        room_count: 0,
+        room_max: 0,
         current_user: '',
         loading: false
       },
       room: [
-        {
-          title: '直播间',
-          note: '直播间介绍内容',
-          applier_mark: '院团委',
-          watched: 100,
-          time_start: '2023-2-23 00:00:00',
-          id: 'Azv297be3f',
-          push_key: 'tk=d9adf1fc45cab29e&id=roomAzv297be3f'
-        }
+        // {
+        //   title: '直播间',
+        //   note: '直播间介绍内容',
+        //   applier_mark: '院团委',
+        //   watched: 100,
+        //   time_start: '2023-2-23 00:00:00',
+        //   id: 'Azv297be3f',
+        //   push_key: 'tk=d9adf1fc45cab29e&id=roomAzv297be3f'
+        // }
       ],
       dialog: {
         new: false,
@@ -163,10 +167,22 @@ export default {
       api.get('/live/list').then(res => {
         if (res.data.code === 'success') {
           ElMessage.success('获取成功')
-          this.room = res.data.data
+          const list = res.data.data
+          this.room = [];
+          list.forEach(item => {
+            this.room.push({
+              applier_mark: decodeURIComponent(item.applier_mark),
+              id: item.id,
+              note: decodeURIComponent(item.note),
+              push_key: item.push_key,
+              time_start: decodeURIComponent(item.time_start),
+              title: decodeURIComponent(item.title),
+              watched: item.watched
+            })
+          })
         } else
           throw `获取失败: ${res.data.msg}`
-      }).catch(reason => ElMessage.error(reason))
+      }).catch(reason => {ElMessage.error(reason.toString()); console.log(reason)})
     },
     postNewRoom() {
       ElMessage.info('正在请求创建直播间')

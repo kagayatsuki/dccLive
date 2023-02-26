@@ -211,8 +211,8 @@ std::unordered_map<std::string, std::string> &ProtocolHeader::GetCookies() {
     return cookies;
 }
 
-char toHex(char x) {
-    return x > 9 ? x + 55 : x + 48;
+char toHex(unsigned char x) {
+    return (char)((x > 9) ? (x + 55) : (x + 48));
 }
 
 char fromHex(char x) {
@@ -230,16 +230,14 @@ std::string URIEncodedPayload::UrlEncode(const char *origin) {
     std::string str;
     if (!origin)
         return str;
-    char ch;
+    unsigned char ch;
     for (; (ch = *origin); origin++) {
-        if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~')
+        if (std::isalnum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~' || ch == ' ')
             str += ch;
-        else if (ch == ' ')
-            str += '+';
         else {
             str += '%';
             str += toHex(ch >> 4);
-            str += toHex(ch & 0x0f);
+            str += toHex(ch % 16);
         }
     }
     return str;
@@ -253,9 +251,9 @@ std::string URIEncodedPayload::UrlDecode(const std::string &origin) {
         if (cstr[i] == '+')
             str += ' ';
         else if (cstr[i] == '%') {
-            if (!(i + 2 < 2))
+            if (!(i + 2 < len))
                 break;
-            str += fromHex(cstr[i + 1]) * 16 + fromHex(cstr[i + 2]);
+            str += (char)(fromHex(cstr[i + 1]) * 16 + fromHex(cstr[i + 2]));
             i += 2;
         } else
             str += cstr[i];
@@ -287,8 +285,11 @@ void URIEncodedPayload::parseForm(const char *raw, size_t size) {
         std::string key(ptr, sep);
         if (len == sep) {
             form.insert({UrlDecode(key), std::string("")});
+//            printf("value: [empty]\n");
         } else {
-            form.insert({UrlDecode(key), UrlDecode(std::string(ptr + sep + 1, len - sep - 1))});
+            std::string value(ptr + sep + 1, len - sep - 1);
+            form.insert({UrlDecode(key), UrlDecode(value)});
+//            printf("value: %s\n", value.c_str());
         }
         count += !!ptr[len];
         ptr += len + (!!ptr[len]);

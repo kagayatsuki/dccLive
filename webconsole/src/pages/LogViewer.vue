@@ -7,7 +7,7 @@
     <el-button @click="getLogs('sys')">System</el-button>
   </el-card>
   <div class="log-wrapper">
-    <span>{{logData}}</span>
+    <span style="white-space: pre-line">{{logData}}</span>
   </div>
 </div>
 </template>
@@ -28,11 +28,7 @@ export default {
       ElMessage.info('正在获取日志数据')
       const url = `/log/${type}`
       api.get(url).then(res => {
-        if (res.data.code === 'success') {
-          ElMessage.success('已获取')
-          this.logData = res.data.data
-        } else
-          throw `获取失败: ${res.data.msg}`
+        this.logData = decodeURIComponent(res.data)
       }).catch(reason => ElMessage.error(reason))
     }
   }
